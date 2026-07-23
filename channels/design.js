@@ -1,24 +1,24 @@
 const { getHospitalByName, getDesignRule } = require('../utils/dbMock');
 const { sendMessage, sendDM, getOriginalMessage } = require('../utils/slackClient');
 
-// 정규식: "[병원명] 항목명 - 내용" 추출
-// 예: "[강남OO의원] 인스타카드뉴스 - 여름 이벤트용" -> match[1]: 강남OO의원, match[2]: 인스타카드뉴스, match[3]: 여름 이벤트용
-const designRegex = /^\[(.*?)\]\s*(.*?)\s*-\s*(.*)/;
+// 정규식: 앞뒤에 다른 글자나 서식이 있어도 인식하도록 ^(시작) 기호를 빼고, 다양한 하이픈(-, —, –)을 허용합니다.
+const designRegex = /\[(.*?)\]\s*(.*?)\s*[-—–]\s*(.*)/;
 
 /**
  * 채널에 새로운 메시지가 올라왔을 때 파싱하고 반응하는 함수
  */
 async function handleDesignMessage(event) {
+  console.log(`[디버그] 채널 원본 메시지 텍스트:`, event.text);
+  
   const match = event.text.match(designRegex);
   if (match) {
     const hospitalName = match[1].trim();
     const itemName = match[2].trim();
     const content = match[3].trim();
     
-    console.log(`[디자인채널] 요청 인식 - 병원: ${hospitalName}, 항목: ${itemName}, 내용: ${content}`);
-    
-    // 필요 시 여기에 접수 알림 등의 추가 로직 작성 가능
-    // await sendMessage(event.channel, `접수되었습니다.`, event.ts); 
+    console.log(`[디자인채널] 요청 인식 성공 - 병원: ${hospitalName}, 항목: ${itemName}, 내용: ${content}`);
+  } else {
+    console.log(`[디자인채널] 정규식 매칭 실패 (메시지가 양식과 다름)`);
   }
 }
 
@@ -28,13 +28,22 @@ async function handleDesignMessage(event) {
 async function handleDesignCompletion(event) {
   // 1. 스레드의 원본(부모) 메시지 텍스트를 가져와서 어떤 요청이었는지 확인합니다.
   const originalMessage = await getOriginalMessage(event.channel, event.thread_ts);
-  if (!originalMessage || !originalMessage.text) return;
+  console.log(`[디버그] 스레드 원본 메시지 텍스트:`, originalMessage?.text);
+  
+  if (!originalMessage || !originalMessage.text) {
+    console.log(`[디버그] 원본 메시지를 찾지 못했습니다.`);
+    return;
+  }
 
   const match = originalMessage.text.match(designRegex);
-  if (!match) return; // 정해진 포맷의 메시지가 아니면 무시
+  if (!match) {
+    console.log(`[디버그] 원본 메시지가 정규식과 매칭되지 않습니다.`);
+    return; // 정해진 포맷의 메시지가 아니면 무시
+  }
 
   const hospitalName = match[1].trim();
   const itemName = match[2].trim();
+  console.log(`[디버그] 파싱 결과 - 병원: ${hospitalName}, 항목: ${itemName}`);
   
   // 2. DB(인트라넷 목업)에서 병원 담당자와 항목별 완료 규칙을 조회합니다.
   const hospital = getHospitalByName(hospitalName);
