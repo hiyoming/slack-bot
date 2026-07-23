@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { sendMessage } = require('../utils/slackClient');
-const { getMarketingStatusSummary, getHospitalTasks } = require('../utils/intraClient');
+const { getDailyCheckReport, getHospitalTasks } = require('../utils/intraClient');
 
 const channelsPath = path.join(__dirname, '../data/hospitalChannels.json');
 
@@ -25,15 +25,13 @@ function isHospitalChannel(channelId) {
 }
 
 // ---------------------------------------------------------
-// 마케팅 현황 조회 키워드 감지
-// 사용자가 "마케팅 현황", "업무 현황", "현황 알려줘" 등을 물어보면
-// 인트라 API를 통해 실제 데이터를 가져옵니다.
+// 데일리 체크 키워드 감지
+// 사용자가 아래 키워드를 물어보면
+// 인트라 API를 통해 이상 감지 보고서를 생성합니다.
 // ---------------------------------------------------------
 const MARKETING_STATUS_KEYWORDS = [
-  '마케팅 현황', '업무 현황', '현황 알려줘', '현황 보여줘',
-  '지금 뭐하고 있어', '진행 현황', '이번 달 현황',
-  '진행 중인 업무', '진행중인 업무', '업무 목록',
-  '마케팅 상황', '작업 현황',
+  '마케팅 현황', '광고 현황', '현황 알려줘', '현황 보여줘',
+  '데일리 체크', '데일리체크', '데일리업무', '데일리 업무'
 ];
 
 function isMarketingStatusRequest(text) {
@@ -55,7 +53,7 @@ async function callGemini(hospital, userText) {
     `내부 담당자: ${managers}`,
     '답변은 반드시 한국어로, 간결하고 실무적으로 작성하세요.',
     '모르는 정보는 모른다고 답하세요.',
-    '마케팅 현황은 "현황 알려줘"라고 물어보면 인트라 연동으로 제공됩니다.',
+    '현황 체크는 "데일리 체크"라고 물어보면 인트라 연동으로 자동 제공됩니다.',
   ].join('\n');
 
   if (!process.env.GEMINI_API_KEY) {
@@ -103,7 +101,7 @@ async function handleHospitalChat(event, cleanChannelId) {
 
   // 마케팅 현황 조회 요청이면 인트라 API 우선 호출
   if (isMarketingStatusRequest(cleanText)) {
-    console.log(`[hospitalChat] 마케팅 현황 조회 요청 감지 - 인트라 API 호출`);
+    console.log(`[hospitalChat] 데일리 체크 요청 감지 - 인트라 API 호출`);
 
     if (!process.env.INTRA_ACCESS_TOKEN) {
       await sendMessage(event.channel,
@@ -112,7 +110,7 @@ async function handleHospitalChat(event, cleanChannelId) {
       return;
     }
 
-    const summary = await getMarketingStatusSummary(hospital.hospital_name);
+    const summary = await getDailyCheckReport(hospital.hospital_name);
     await sendMessage(event.channel, summary, event.thread_ts || event.ts);
     return;
   }
