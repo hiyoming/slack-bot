@@ -125,10 +125,10 @@ async function callGemini(hospital, userText) {
   }
 
   try {
-    const model = 'gemini-1.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    let model = 'gemini-1.5-flash-latest';
+    let url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -137,9 +137,24 @@ async function callGemini(hospital, userText) {
       })
     });
 
+    if (response.status === 404) {
+      console.log(`[hospitalChat] ${model} 404 error, falling back to gemini-pro`);
+      model = 'gemini-pro';
+      url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+      // gemini-pro does not support systemInstruction in v1beta in the same way, so we append it to the user text
+      const fallbackText = `[System Instructions]\n${systemPrompt}\n\n[User Input]\n${userText}`;
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: fallbackText }] }]
+        })
+      });
+    }
+
     if (!response.ok) {
       const errText = await response.text();
-      console.error('[hospitalChat] Gemini API error', response.status, errText);
+      console.error(`[hospitalChat] Gemini API error ${response.status}`, errText);
       return '죄송합니다, 지금 응답을 생성하는 중 오류가 발생했습니다.';
     }
 
