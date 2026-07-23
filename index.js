@@ -78,9 +78,11 @@ app.post('/slack/events', verifySlackSignature, async (req, res) => {
       // 향후 .env 파일에 채널 ID를 넣어두고 동적으로 판단하도록 수정합니다.
       // (지금은 임시로 .env 의 DESIGN_CHANNEL_ID를 기준으로 분기합니다)
       // ---------------------------------------------------------
-      const targetChannelId = (process.env.DESIGN_CHANNEL_ID || '').trim();
+      // 슬랙 UI에서 복사할 때 섞여 들어가는 투명 문자나 공백을 완벽히 제거 (알파벳/숫자만 남김)
+      const targetChannelId = (process.env.DESIGN_CHANNEL_ID || '').replace(/[^A-Z0-9]/ig, '');
+      const cleanChannelId = (channelId || '').replace(/[^A-Z0-9]/ig, '');
       
-      if (channelId === targetChannelId) {
+      if (cleanChannelId === targetChannelId) {
         
         // 봇을 멘션하여 "완료"라고 달린 스레드 댓글인지 확인 (예: "<@U12345> 완료")
         if (event.thread_ts && event.text.includes('완료')) {
