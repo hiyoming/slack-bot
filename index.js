@@ -5,6 +5,7 @@ const crypto = require('crypto');
 // 새롭게 분리된 모듈들을 불러옵니다.
 const { sendMessage } = require('./utils/slackClient');
 const { handleDesignMessage, handleDesignCompletion } = require('./channels/design');
+const { handleScheduleMessage, handleScheduleCompletion } = require('./channels/schedule');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -80,12 +81,13 @@ app.post('/slack/events', verifySlackSignature, async (req, res) => {
       // ---------------------------------------------------------
       // 슬랙 UI에서 복사할 때 섞여 들어가는 투명 문자나 공백을 완벽히 제거 (알파벳/숫자만 남김)
       const targetChannelId = (process.env.DESIGN_CHANNEL_ID || '').replace(/[^A-Z0-9]/ig, '');
+      const scheduleChannelId = (process.env.SCHEDULE_CHANNEL_ID || '').replace(/[^A-Z0-9]/ig, '');
       const cleanChannelId = (channelId || '').replace(/[^A-Z0-9]/ig, '');
       
       console.log(`[디버그] 클린 채널 비교: '${cleanChannelId}' === '${targetChannelId}' -> ${cleanChannelId === targetChannelId}`);
       
       if (cleanChannelId === targetChannelId) {
-        console.log(`[디버그] 채널 일치 성공! 이제 메시지 분석 시작... thread_ts: ${event.thread_ts}, text: ${event.text}`);
+        console.log(`[디버그] 디자인 채널 일치 성공! 이제 메시지 분석 시작... thread_ts: ${event.thread_ts}, text: ${event.text}`);
         
         // 봇을 멘션하여 "완료"라고 달린 스레드 댓글인지 확인 (예: "<@U12345> 완료")
         if (event.thread_ts && event.text.includes('완료')) {
@@ -98,8 +100,18 @@ app.post('/slack/events', verifySlackSignature, async (req, res) => {
         } else {
           console.log(`[디버그] 스레드 댓글이지만 '완료'라는 단어가 없습니다. 무시됨.`);
         }
+      } else if (cleanChannelId === scheduleChannelId) {
+        console.log(`[디버그] 진료일정 채널 일치 성공!`);
+        
+        if (event.thread_ts) {
+          // 스레드에 달린 댓글은 상태 전이로 처리
+          await handleScheduleCompletion(event);
+        } else {
+          // 메인 채널의 새로운 글은 트리거로 처리
+          await handleScheduleMessage(event);
+        }
       } else {
-        console.log(`[디버그] 채널 ID 불일치로 라우팅 무시됨.`);
+        console.log(`[디버그] 등록된 채널 ID(디자인/진료일정)와 불일치하여 라우팅 무시됨.`);
       }
       
       // 추가 채널(진료일정, 마케팅 등) 라우팅은 이곳에 추가됩니다.
