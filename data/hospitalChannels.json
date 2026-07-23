@@ -1,10 +1,15 @@
 [
-    {
-          "channel_id": "C0BK61U317G",
-          "hospital_name": "그대안에산부인과의원 신촌점",
-          "representative_doctor": "국진이",
-          "department": "산부인과",
-          "internal_managers": ["이민아", "이영광"],
-          "manager_slack_id": ""
-    }
+  {
+    "channel_id": "C0BK61U317G",
+    "hospital_id": 60,
+    "hospital_user_id": 42,
+    "hospital_name": "그대안에산부인과의원 신촌점",
+    "representative_doctor": "국진이",
+    "department": "산부인과",
+    "homepage_url": "sc.intouclinic.co.kr",
+    "blog_url": "https://blog.naver.com/scscintou",
+    "management_type": "all",
+    "internal_managers": ["이민아", "이영광"],
+    "manager_slack_ids": {}
+  }
 ]
