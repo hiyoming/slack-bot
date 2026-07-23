@@ -82,16 +82,24 @@ app.post('/slack/events', verifySlackSignature, async (req, res) => {
       const targetChannelId = (process.env.DESIGN_CHANNEL_ID || '').replace(/[^A-Z0-9]/ig, '');
       const cleanChannelId = (channelId || '').replace(/[^A-Z0-9]/ig, '');
       
+      console.log(`[디버그] 클린 채널 비교: '${cleanChannelId}' === '${targetChannelId}' -> ${cleanChannelId === targetChannelId}`);
+      
       if (cleanChannelId === targetChannelId) {
+        console.log(`[디버그] 채널 일치 성공! 이제 메시지 분석 시작... thread_ts: ${event.thread_ts}, text: ${event.text}`);
         
         // 봇을 멘션하여 "완료"라고 달린 스레드 댓글인지 확인 (예: "<@U12345> 완료")
         if (event.thread_ts && event.text.includes('완료')) {
+          console.log(`[디버그] 스레드 완료 메시지로 판단됨`);
           await handleDesignCompletion(event);
         } else if (!event.thread_ts) {
+          console.log(`[디버그] 일반(새로운) 메시지로 판단됨`);
           // 스레드가 아닌 일반 채팅인 경우 (새로운 요청)
           await handleDesignMessage(event);
+        } else {
+          console.log(`[디버그] 스레드 댓글이지만 '완료'라는 단어가 없습니다. 무시됨.`);
         }
-
+      } else {
+        console.log(`[디버그] 채널 ID 불일치로 라우팅 무시됨.`);
       }
       
       // 추가 채널(진료일정, 마케팅 등) 라우팅은 이곳에 추가됩니다.
