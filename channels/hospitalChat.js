@@ -89,6 +89,20 @@ async function callGemini(hospital, userText) {
       addAdData('카카오', kakao);
       addAdData('구글', google);
     }
+    // 홈페이지 관련 질문 시 데이터 주입
+    if (userText.includes('홈페이지') || userText.includes('접속')) {
+      const { intraFetch } = require('../utils/intraClient');
+      const homepages = await intraFetch('/api/monitoring/homepages').catch(() => null);
+      if (homepages && homepages.items) {
+        const homeData = homepages.items.filter(i => (i.hosp_name || '').replace(/\s/g, '').includes(cleanHosp));
+        if (homeData.length > 0) {
+          additionalContext += '\n[홈페이지 접속 상태 데이터]\n';
+          homeData.forEach(item => {
+            additionalContext += `- ${item.domain}: 접속 상태 ${item.last_ping_ok ? '정상(OK)' : '에러(접속 불가)'}\n`;
+          });
+        }
+      }
+    }
   } catch (err) {
     console.error('[hospitalChat] Context injection failed:', err);
   }
@@ -101,7 +115,7 @@ async function callGemini(hospital, userText) {
     `블로그: ${hospital.blog_url || 'N/A'}`,
     `내부 담당자: ${managers}`,
     '답변은 반드시 한국어로, 친절하면서도 전문적으로 작성하세요.',
-    '사용자가 순위나 광고 예산을 물어보면 아래 제공된 데이터를 바탕으로 답변하세요. 제공된 데이터가 없다면 모른다고 답변하세요.',
+    '사용자가 순위, 광고 예산, 혹은 홈페이지 상태 등을 물어보면 아래 제공된 [데이터]를 바탕으로 답변하세요. 사용자가 특정 날짜를 언급하더라도, 제공된 최신 데이터를 기준으로 답변하세요. 제공된 데이터가 없다면 모른다고 답변하세요.',
     additionalContext
   ].join('\n');
 
