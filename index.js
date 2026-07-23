@@ -116,7 +116,7 @@ app.post('/slack/events', verifySlackSignature, async (req, res) => {
                 await handleHospitalChat(event, cleanChannelId);
               
       } else {
-        console.log(`[디버그] 등록된 채널 ID(디자인/진료일정)/병원와 불일치하여 라우팅 무시됨.`);
+      console.log(`[디버그] 등록된 채널 ID(디자인/진료일정/병원)와 불일치하여 라우팅 무시됨.`);     
       }
       
       // 추가 채널(진료일정, 마케팅 등) 라우팅은 이곳에 추가됩니다.
