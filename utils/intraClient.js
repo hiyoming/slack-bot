@@ -262,7 +262,9 @@ async function getDailyCheckReport(hospitalName) {
   lines.push(`🏥 *${hospitalName} 데일리 마케팅 현황*`);
   lines.push(`───────────────────────────`);
   
-  if (anomalies.length > 0) {
+  const hasAnomaly = anomalies.length > 0;
+  
+  if (hasAnomaly) {
     lines.push(`⚠️ *이상 항목 ${anomalies.length}건 발견*`);
     lines.push('');
     anomalies.forEach(a => lines.push(a));
@@ -270,7 +272,7 @@ async function getDailyCheckReport(hospitalName) {
     lines.push(`✅ *이상 없음*: 광고 예산, 플레이스 순위, 홈페이지 접속 모두 정상입니다.`);
   }
 
-  return lines.join('\n');
+  return { hasAnomaly, report: lines.join('\n') };
 }
 
 module.exports = {

@@ -110,8 +110,8 @@ async function handleHospitalChat(event, cleanChannelId) {
       return;
     }
 
-    const summary = await getDailyCheckReport(hospital.hospital_name);
-    await sendMessage(event.channel, summary, event.thread_ts || event.ts);
+    const { report } = await getDailyCheckReport(hospital.hospital_name);
+    await sendMessage(event.channel, report, event.thread_ts || event.ts);
     return;
   }
 

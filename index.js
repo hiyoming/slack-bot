@@ -7,6 +7,10 @@ const { sendMessage } = require('./utils/slackClient');
 const { handleDesignMessage, handleDesignCompletion } = require('./channels/design');
 const { handleScheduleMessage, handleScheduleCompletion } = require('./channels/schedule');
 const { handleHospitalChat, isHospitalChannel } = require('./channels/hospitalChat');
+const { startScheduler } = require('./utils/scheduler');
+
+// 스케줄러 시작
+startScheduler();
 
 const app = express();
 const port = process.env.PORT || 3000;
