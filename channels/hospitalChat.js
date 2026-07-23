@@ -106,18 +106,18 @@ async function handleHospitalChat(event, cleanChannelId) {
     if (!process.env.INTRA_ACCESS_TOKEN) {
       await sendMessage(event.channel,
         '⚠️ 인트라 연동이 설정되지 않았습니다. Railway Variables에 `INTRA_ACCESS_TOKEN`을 추가해주세요.',
-        event.thread_ts || event.ts);
+        event.thread_ts);
       return;
     }
 
     const { report } = await getDailyCheckReport(hospital.hospital_name);
-    await sendMessage(event.channel, report, event.thread_ts || event.ts);
+    await sendMessage(event.channel, report, event.thread_ts);
     return;
   }
 
   // 일반 질문은 Gemini AI로 응답
   const reply = await callGemini(hospital, cleanText);
-  await sendMessage(event.channel, reply, event.thread_ts || event.ts);
+  await sendMessage(event.channel, reply, event.thread_ts);
 }
 
 module.exports = {
