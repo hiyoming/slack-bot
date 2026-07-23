@@ -259,7 +259,7 @@ async function getDailyCheckReport(hospitalName) {
 
   // 결과 조합
   let lines = [];
-  lines.push(`🏥 *${hospitalName} 데일리 마케팅 현황*`);
+  lines.push(`🏥 *${hospitalName} 데일리 체크*`);
   lines.push(`───────────────────────────`);
   
   const hasAnomaly = anomalies.length > 0;
