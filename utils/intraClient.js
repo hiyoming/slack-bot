@@ -181,6 +181,13 @@ async function getDailyCheckReport(hospitalName) {
     intraFetch('/api/monitoring/homepages').catch(() => null)
   ]);
 
+  if (!naver && !kakao && !google && !placeRank && !homepages) {
+    return { 
+      hasAnomaly: true, 
+      report: `⚠️ *[${hospitalName}]* 인트라넷 연동 오류(토큰 만료 등)로 데일리 체크 데이터를 불러오지 못했습니다. API 토큰을 다시 확인해주세요.` 
+    };
+  }
+
   const normalize = (name) => {
     if (!name) return '';
     return name.replace(/\s/g, '')
