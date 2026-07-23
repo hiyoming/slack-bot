@@ -125,7 +125,7 @@ async function callGemini(hospital, userText) {
   }
 
   try {
-    let model = 'gemini-1.5-flash-latest';
+    let model = 'gemini-1.5-flash';
     let url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
     let response = await fetch(url, {
@@ -138,18 +138,34 @@ async function callGemini(hospital, userText) {
     });
 
     if (response.status === 404) {
-      console.log(`[hospitalChat] ${model} 404 error, falling back to gemini-pro`);
-      model = 'gemini-pro';
-      url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-      // gemini-pro does not support systemInstruction in v1beta in the same way, so we append it to the user text
-      const fallbackText = `[System Instructions]\n${systemPrompt}\n\n[User Input]\n${userText}`;
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: fallbackText }] }]
-        })
-      });
+      console.log(`[hospitalChat] ${model} 404 error, fetching available models...`);
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`);
+      const listData = await listRes.json();
+      
+      const availableModels = (listData.models || [])
+        .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'));
+      
+      if (availableModels.length > 0) {
+        // Pick the first available model (preferably flash or pro)
+        const chosen = availableModels.find(m => m.name.includes('1.5-flash')) || 
+                       availableModels.find(m => m.name.includes('flash')) || 
+                       availableModels[0];
+        
+        console.log(`[hospitalChat] Auto-selected model: ${chosen.name}`);
+        // chosen.name already includes 'models/' prefix, e.g., 'models/gemini-1.5-flash'
+        const rawName = chosen.name.replace('models/', '');
+        url = `https://generativelanguage.googleapis.com/v1beta/models/${rawName}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        
+        // Retry with chosen model
+        const fallbackText = `[System Instructions]\n${systemPrompt}\n\n[User Input]\n${userText}`;
+        response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: fallbackText }] }]
+          })
+        });
+      }
     }
 
     if (!response.ok) {
