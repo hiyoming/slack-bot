@@ -78,7 +78,9 @@ app.post('/slack/events', verifySlackSignature, async (req, res) => {
       // 향후 .env 파일에 채널 ID를 넣어두고 동적으로 판단하도록 수정합니다.
       // (지금은 임시로 .env 의 DESIGN_CHANNEL_ID를 기준으로 분기합니다)
       // ---------------------------------------------------------
-      if (channelId === process.env.DESIGN_CHANNEL_ID) {
+      const targetChannelId = (process.env.DESIGN_CHANNEL_ID || '').trim();
+      
+      if (channelId === targetChannelId) {
         
         // 봇을 멘션하여 "완료"라고 달린 스레드 댓글인지 확인 (예: "<@U12345> 완료")
         if (event.thread_ts && event.text.includes('완료')) {
