@@ -44,6 +44,55 @@ function isMarketingStatusRequest(text) {
 // Calls Gemini API to generate a natural language reply using hospital context
 async function callGemini(hospital, userText) {
   const managers = (hospital.internal_managers || []).join(', ') || 'N/A';
+  
+  let additionalContext = '';
+  
+  try {
+    const cleanHosp = (hospital.hospital_name || '').replace(/\s/g, '');
+    
+    // 플레이스/순위 관련 질문 시 데이터 주입
+    if (userText.includes('플레이스') || userText.includes('순위')) {
+      const { intraFetch } = require('../utils/intraClient');
+      const placeRank = await intraFetch('/api/monitoring/place-rank').catch(() => null);
+      if (placeRank && placeRank.items) {
+        const placeData = placeRank.items.filter(i => (i.hosp_name || '').replace(/\s/g, '').includes(cleanHosp));
+        if (placeData.length > 0) {
+          additionalContext += '\n[네이버 플레이스 현재 순위 데이터]\n';
+          placeData.forEach(item => {
+            additionalContext += `- 키워드 '${item.search_keyword}': 현재 ${item.today_rank}위 (목표 ${item.target_rank}위)\n`;
+          });
+        }
+      }
+    }
+
+    // 광고/예산/잔액 관련 질문 시 데이터 주입
+    if (userText.includes('광고') || userText.includes('예산') || userText.includes('잔액')) {
+      const { intraFetch } = require('../utils/intraClient');
+      const [naver, kakao, google] = await Promise.all([
+        intraFetch('/api/monitoring/ad-info/naver').catch(() => null),
+        intraFetch('/api/monitoring/ad-info/kakao').catch(() => null),
+        intraFetch('/api/monitoring/ad-info/google').catch(() => null),
+      ]);
+      
+      additionalContext += '\n[광고 예산 및 잔액 데이터]\n';
+      
+      const addAdData = (platformName, data) => {
+        if (data && data.items) {
+          const items = data.items.filter(i => (i.hosp_name || '').replace(/\s/g, '').includes(cleanHosp));
+          items.forEach(item => {
+            additionalContext += `- ${platformName}: 잔액 ${Number(item.balance || 0).toLocaleString()}원, 전일 소진액 ${Number(item.spending_yesterday || 0).toLocaleString()}원, 월 예산 ${Number(item.monthly_advertise || 0).toLocaleString()}원\n`;
+          });
+        }
+      };
+      
+      addAdData('네이버', naver);
+      addAdData('카카오', kakao);
+      addAdData('구글', google);
+    }
+  } catch (err) {
+    console.error('[hospitalChat] Context injection failed:', err);
+  }
+
   const systemPrompt = [
     `당신은 "${hospital.hospital_name}"의 Slack 업무 보조 에이전트입니다.`,
     `대표원장: ${hospital.representative_doctor || 'N/A'}`,
@@ -51,9 +100,9 @@ async function callGemini(hospital, userText) {
     `홈페이지: ${hospital.homepage_url || 'N/A'}`,
     `블로그: ${hospital.blog_url || 'N/A'}`,
     `내부 담당자: ${managers}`,
-    '답변은 반드시 한국어로, 간결하고 실무적으로 작성하세요.',
-    '모르는 정보는 모른다고 답하세요.',
-    '현황 체크는 "데일리 체크"라고 물어보면 인트라 연동으로 자동 제공됩니다.',
+    '답변은 반드시 한국어로, 친절하면서도 전문적으로 작성하세요.',
+    '사용자가 순위나 광고 예산을 물어보면 아래 제공된 데이터를 바탕으로 답변하세요. 제공된 데이터가 없다면 모른다고 답변하세요.',
+    additionalContext
   ].join('\n');
 
   if (!process.env.GEMINI_API_KEY) {
