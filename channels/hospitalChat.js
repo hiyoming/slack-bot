@@ -40,8 +40,8 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 try {
-    const model = 'gemini-1.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        const model = 'gemini-2.5-flash';    
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
     const response = await fetch(url, {
         method: 'POST',
