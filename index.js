@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { sendMessage } = require('./utils/slackClient');
 const { handleDesignMessage, handleDesignCompletion } = require('./channels/design');
 const { handleScheduleMessage, handleScheduleCompletion } = require('./channels/schedule');
+const { handleHospitalChat, isHospitalChannel } = require('./channels/hospitalChat');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -110,8 +111,12 @@ app.post('/slack/events', verifySlackSignature, async (req, res) => {
           // 메인 채널의 새로운 글은 트리거로 처리
           await handleScheduleMessage(event);
         }
+      } else if (isHospitalChannel(cleanChannelId)) {
+                console.log(`[디버그] 병원 채널 일치! 대화형 응답(Claude) 처리 시작`);
+                await handleHospitalChat(event, cleanChannelId);
+              
       } else {
-        console.log(`[디버그] 등록된 채널 ID(디자인/진료일정)와 불일치하여 라우팅 무시됨.`);
+        console.log(`[디버그] 등록된 채널 ID(디자인/진료일정)/병원와 불일치하여 라우팅 무시됨.`);
       }
       
       // 추가 채널(진료일정, 마케팅 등) 라우팅은 이곳에 추가됩니다.
