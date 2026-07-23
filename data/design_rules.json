@@ -1,0 +1,7 @@
+{
+  "인스타카드뉴스": { "completion_action": "승인필요" },
+  "플레이스이미지": { "completion_action": "승인필요" },
+  "서브페이지제작": { "completion_action": "안내만" },
+  "A4원내게시물":   { "completion_action": "없음" },
+  "이벤트팝업":     { "completion_action": "없음" }
+}
