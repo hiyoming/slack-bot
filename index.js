@@ -69,6 +69,10 @@ app.post('/slack/events', verifySlackSignature, async (req, res) => {
     if (event.type === 'message' && event.text) {
       const channelId = event.channel;
       
+      // [긴급 디버깅용 로그] 슬랙에서 어떤 채널 ID로 보냈는지, 현재 환경변수에 등록된 ID는 뭔지 확인
+      console.log(`[디버그] 방금 메시지가 온 채널 ID: ${channelId}`);
+      console.log(`[디버그] 현재 서버에 등록된 DESIGN_CHANNEL_ID: ${process.env.DESIGN_CHANNEL_ID}`);
+      
       // ---------------------------------------------------------
       // 중앙 라우팅 (Central Routing)
       // 향후 .env 파일에 채널 ID를 넣어두고 동적으로 판단하도록 수정합니다.
