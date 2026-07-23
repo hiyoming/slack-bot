@@ -64,62 +64,50 @@ app.post('/slack/events', verifySlackSignature, async (req, res) => {
     return res.status(200).send(challenge);
   }
 
+  // 슬랙 재시도 요청 무시 (3초 내 응답 못 받으면 슬랙이 같은 이벤트를 재전송함)
+  // 재시도는 처리하지 않고 즉시 200만 반환합니다.
+  if (req.headers['x-slack-retry-num']) {
+    console.log(`[중복방지] 슬랙 재시도 요청 무시 (retry: ${req.headers['x-slack-retry-num']})`);
+    return res.status(200).send();
+  }
+
   if (type === 'event_callback') {
     // 봇 자신이 보낸 메시지 무시
     if (event.bot_id) return res.status(200).send();
 
     if (event.type === 'message' && event.text) {
       const channelId = event.channel;
-      
-      // [긴급 디버깅용 로그] 슬랙에서 어떤 채널 ID로 보냈는지, 현재 환경변수에 등록된 ID는 뭔지 확인
-      console.log(`[디버그] 방금 메시지가 온 채널 ID: ${channelId}`);
-      console.log(`[디버그] 현재 서버에 등록된 DESIGN_CHANNEL_ID: ${process.env.DESIGN_CHANNEL_ID}`);
-      
-      // ---------------------------------------------------------
-      // 중앙 라우팅 (Central Routing)
-      // 향후 .env 파일에 채널 ID를 넣어두고 동적으로 판단하도록 수정합니다.
-      // (지금은 임시로 .env 의 DESIGN_CHANNEL_ID를 기준으로 분기합니다)
-      // ---------------------------------------------------------
-      // 슬랙 UI에서 복사할 때 섞여 들어가는 투명 문자나 공백을 완벽히 제거 (알파벳/숫자만 남김)
+
+      // 슬랙에 즉시 200 응답 (3초 이내 응답 안 하면 슬랙이 재시도함)
+      res.status(200).send();
+
+      // 이후 처리는 비동기로 진행 (응답은 이미 완료)
       const targetChannelId = (process.env.DESIGN_CHANNEL_ID || '').replace(/[^A-Z0-9]/ig, '');
       const scheduleChannelId = (process.env.SCHEDULE_CHANNEL_ID || '').replace(/[^A-Z0-9]/ig, '');
       const cleanChannelId = (channelId || '').replace(/[^A-Z0-9]/ig, '');
-      
-      console.log(`[디버그] 클린 채널 비교: '${cleanChannelId}' === '${targetChannelId}' -> ${cleanChannelId === targetChannelId}`);
-      
+
+      console.log(`[라우팅] 채널: ${cleanChannelId}`);
+
       if (cleanChannelId === targetChannelId) {
-        console.log(`[디버그] 디자인 채널 일치 성공! 이제 메시지 분석 시작... thread_ts: ${event.thread_ts}, text: ${event.text}`);
-        
-        // 봇을 멘션하여 "완료"라고 달린 스레드 댓글인지 확인 (예: "<@U12345> 완료")
         if (event.thread_ts && event.text.includes('완료')) {
-          console.log(`[디버그] 스레드 완료 메시지로 판단됨`);
           await handleDesignCompletion(event);
         } else if (!event.thread_ts) {
-          console.log(`[디버그] 일반(새로운) 메시지로 판단됨`);
-          // 스레드가 아닌 일반 채팅인 경우 (새로운 요청)
           await handleDesignMessage(event);
-        } else {
-          console.log(`[디버그] 스레드 댓글이지만 '완료'라는 단어가 없습니다. 무시됨.`);
         }
       } else if (cleanChannelId === scheduleChannelId) {
-        console.log(`[디버그] 진료일정 채널 일치 성공!`);
-        
         if (event.thread_ts) {
-          // 스레드에 달린 댓글은 상태 전이로 처리
           await handleScheduleCompletion(event);
         } else {
-          // 메인 채널의 새로운 글은 트리거로 처리
           await handleScheduleMessage(event);
         }
       } else if (isHospitalChannel(cleanChannelId)) {
-                console.log(`[디버그] 병원 채널 일치! 대화형 응답(Claude) 처리 시작`);
-                await handleHospitalChat(event, cleanChannelId);
-              
+        console.log(`[라우팅] 병원 채널 → 대화형 처리`);
+        await handleHospitalChat(event, cleanChannelId);
       } else {
-      console.log(`[디버그] 등록된 채널 ID(디자인/진료일정/병원)와 불일치하여 라우팅 무시됨.`);     
+        console.log(`[라우팅] 등록되지 않은 채널, 무시됨.`);
       }
-      
-      // 추가 채널(진료일정, 마케팅 등) 라우팅은 이곳에 추가됩니다.
+
+      return; // res는 이미 전송됨
     }
   }
 
