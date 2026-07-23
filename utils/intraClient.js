@@ -181,14 +181,30 @@ async function getDailyCheckReport(hospitalName) {
     intraFetch('/api/monitoring/homepages').catch(() => null)
   ]);
 
-  const clean = (s) => (s || '').replace(/\s/g, '');
-  const cleanHosp = clean(hospitalName);
+  const normalize = (name) => {
+    if (!name) return '';
+    return name.replace(/\s/g, '')
+               .replace(/의원/g, '')
+               .replace(/산부인과/g, '')
+               .replace(/피부과/g, '')
+               .replace(/성형외과/g, '')
+               .replace(/치과/g, '')
+               .replace(/안과/g, '')
+               .replace(/한의원/g, '')
+               .replace(/클리닉/g, '');
+  };
+
+  const isMatch = (apiName, hospName) => {
+    const a = normalize(apiName);
+    const b = normalize(hospName);
+    return a.includes(b) || b.includes(a) || a === b;
+  };
   
   const anomalies = [];
 
   // 1. 네이버 광고 이상 감지
   if (naver && naver.items) {
-    const naverData = naver.items.filter(i => clean(i.hosp_name).includes(cleanHosp));
+    const naverData = naver.items.filter(i => isMatch(i.hosp_name, hospitalName));
     naverData.forEach(item => {
       // 잔액 부족 체크 (한달 광고액의 20% 이하)
       if (item.balance <= item.monthly_advertise * 0.2) {
@@ -212,7 +228,7 @@ async function getDailyCheckReport(hospitalName) {
 
   // 2. 카카오 광고 이상 감지
   if (kakao && kakao.items) {
-    const kakaoData = kakao.items.filter(i => clean(i.hosp_name).includes(cleanHosp));
+    const kakaoData = kakao.items.filter(i => isMatch(i.hosp_name, hospitalName));
     kakaoData.forEach(item => {
       if (item.balance <= 5000) {
         anomalies.push(`🔴 *[카카오 광고]* 잔액 부족: 5,000원 이하 (${(item.balance || 0).toLocaleString()}원)`);
@@ -225,7 +241,7 @@ async function getDailyCheckReport(hospitalName) {
 
   // 3. 구글 광고 이상 감지
   if (google && google.items) {
-    const googleData = google.items.filter(i => clean(i.hosp_name).includes(cleanHosp));
+    const googleData = google.items.filter(i => isMatch(i.hosp_name, hospitalName));
     googleData.forEach(item => {
       if (item.balance <= 10000) {
         anomalies.push(`🔴 *[구글 광고]* 잔액 부족: 10,000원 이하 (${(item.balance || 0).toLocaleString()}원)`);
@@ -238,7 +254,7 @@ async function getDailyCheckReport(hospitalName) {
 
   // 4. 플레이스 순위 체크
   if (placeRank && placeRank.items) {
-    const placeData = placeRank.items.filter(i => clean(i.hosp_name).includes(cleanHosp));
+    const placeData = placeRank.items.filter(i => isMatch(i.hosp_name, hospitalName));
     placeData.forEach(item => {
       // today_rank와 target_rank가 다르면 보고 (순위 변동)
       if (item.today_rank && String(item.today_rank) !== String(item.target_rank)) {
@@ -249,7 +265,7 @@ async function getDailyCheckReport(hospitalName) {
 
   // 5. 홈페이지 접속 체크
   if (homepages && homepages.items) {
-    const homeData = homepages.items.filter(i => clean(i.hosp_name).includes(cleanHosp));
+    const homeData = homepages.items.filter(i => isMatch(i.hosp_name, hospitalName));
     homeData.forEach(item => {
       if (item.last_ping_ok === false) {
         anomalies.push(`🚨 *[홈페이지]* 접속 불가 감지: ${item.domain}`);

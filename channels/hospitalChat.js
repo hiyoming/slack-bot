@@ -48,14 +48,31 @@ async function callGemini(hospital, userText) {
   let additionalContext = '';
   
   try {
-    const cleanHosp = (hospital.hospital_name || '').replace(/\s/g, '');
+    const normalize = (name) => {
+      if (!name) return '';
+      return name.replace(/\s/g, '')
+                 .replace(/의원/g, '')
+                 .replace(/산부인과/g, '')
+                 .replace(/피부과/g, '')
+                 .replace(/성형외과/g, '')
+                 .replace(/치과/g, '')
+                 .replace(/안과/g, '')
+                 .replace(/한의원/g, '')
+                 .replace(/클리닉/g, '');
+    };
+
+    const isMatch = (apiName, hospName) => {
+      const a = normalize(apiName);
+      const b = normalize(hospName);
+      return a.includes(b) || b.includes(a) || a === b;
+    };
     
     // 플레이스/순위 관련 질문 시 데이터 주입
     if (userText.includes('플레이스') || userText.includes('순위')) {
       const { intraFetch } = require('../utils/intraClient');
       const placeRank = await intraFetch('/api/monitoring/place-rank').catch(() => null);
       if (placeRank && placeRank.items) {
-        const placeData = placeRank.items.filter(i => (i.hosp_name || '').replace(/\s/g, '').includes(cleanHosp));
+        const placeData = placeRank.items.filter(i => isMatch(i.hosp_name, hospital.hospital_name));
         if (placeData.length > 0) {
           additionalContext += '\n[네이버 플레이스 현재 순위 데이터]\n';
           placeData.forEach(item => {
@@ -78,7 +95,7 @@ async function callGemini(hospital, userText) {
       
       const addAdData = (platformName, data) => {
         if (data && data.items) {
-          const items = data.items.filter(i => (i.hosp_name || '').replace(/\s/g, '').includes(cleanHosp));
+          const items = data.items.filter(i => isMatch(i.hosp_name, hospital.hospital_name));
           items.forEach(item => {
             additionalContext += `- ${platformName}: 잔액 ${Number(item.balance || 0).toLocaleString()}원, 전일 소진액 ${Number(item.spending_yesterday || 0).toLocaleString()}원, 월 예산 ${Number(item.monthly_advertise || 0).toLocaleString()}원\n`;
           });
@@ -94,7 +111,7 @@ async function callGemini(hospital, userText) {
       const { intraFetch } = require('../utils/intraClient');
       const homepages = await intraFetch('/api/monitoring/homepages').catch(() => null);
       if (homepages && homepages.items) {
-        const homeData = homepages.items.filter(i => (i.hosp_name || '').replace(/\s/g, '').includes(cleanHosp));
+        const homeData = homepages.items.filter(i => isMatch(i.hosp_name, hospital.hospital_name));
         if (homeData.length > 0) {
           additionalContext += '\n[홈페이지 접속 상태 데이터]\n';
           homeData.forEach(item => {
@@ -161,6 +178,19 @@ async function handleHospitalChat(event, cleanChannelId) {
   if (!cleanText) return;
 
   console.log(`[hospitalChat] message from ${hospital.hospital_name}: ${cleanText}`);
+
+  // 디버그: 네이버 광고에 등록된 병원 이름 전체 확인
+  if (cleanText === '디버그광고') {
+    const { intraFetch } = require('../utils/intraClient');
+    const naver = await intraFetch('/api/monitoring/ad-info/naver').catch(() => null);
+    if (!naver || !naver.items) {
+      await sendMessage(event.channel, '네이버 광고 API에서 데이터를 가져오지 못했습니다 (또는 items가 없음).', event.thread_ts);
+      return;
+    }
+    const names = [...new Set(naver.items.map(i => i.hosp_name))];
+    await sendMessage(event.channel, `[디버그] 네이버 광고에 등록된 병원 이름 목록:\n${names.join(', ')}`, event.thread_ts);
+    return;
+  }
 
   // 마케팅 현황 조회 요청이면 인트라 API 우선 호출
   if (isMarketingStatusRequest(cleanText)) {
