@@ -120,6 +120,29 @@ async function callGemini(hospital, userText) {
         }
       }
     }
+    // 보고서 관련 질문 시 데이터 주입
+    if (userText.includes('보고서')) {
+      const { getHospitalReports } = require('../utils/intraClient');
+      const reports = await getHospitalReports(hospital.hospital_name).catch(() => []);
+      if (reports.length > 0) {
+        additionalContext += '\n[월간 보고서 작성 현황 데이터]\n';
+        reports.forEach(r => {
+          additionalContext += `- ${r.report_year}년 ${r.report_month}월 보고서: ${r.confirmed ? '확인 완료' : '미확인'}, 페이지 수 ${r.page_count}장, 이미지 ${r.image_count}장\n`;
+        });
+      }
+    }
+
+    // 업무(태스크) 관련 질문 시 데이터 주입
+    if (userText.includes('업무') || userText.includes('요청')) {
+      const { getHospitalTasks } = require('../utils/intraClient');
+      const tasks = await getHospitalTasks(hospital.hospital_name, 10).catch(() => []);
+      if (tasks.length > 0) {
+        additionalContext += '\n[요청 업무 현황 데이터 (최근 10건)]\n';
+        tasks.forEach(t => {
+          additionalContext += `- [${t.cat}] ${t.ti} (상태: ${t.st}, 담당: ${t.asgn || '미배정'})\n`;
+        });
+      }
+    }
   } catch (err) {
     console.error('[hospitalChat] Context injection failed:', err);
   }

@@ -12,9 +12,9 @@ async function runTest() {
   const result = await getDailyCheckReport(hospitalName);
   console.log(result.report);
 
-  console.log('\n=== 2. 광고 데이터 API 직접 호출 확인 ===');
-  const naver = await intraFetch('/api/monitoring/ad-info/naver');
-  if (naver && naver.items) {
+  console.log('\n=== 2. 플레이스 순위 데이터 구조 확인 ===');
+  const placeRank = await intraFetch('/api/monitoring/place-rank');
+  if (placeRank && placeRank.items) {
     const normalize = (name) => {
       if (!name) return '';
       return name.replace(/\s/g, '').replace(/의원/g, '').replace(/산부인과/g, '').replace(/피부과/g, '').replace(/성형외과/g, '').replace(/치과/g, '').replace(/안과/g, '').replace(/한의원/g, '').replace(/클리닉/g, '');
@@ -24,13 +24,8 @@ async function runTest() {
       const b = normalize(hospName);
       return a.includes(b) || b.includes(a) || a === b;
     };
-    const matched = naver.items.filter(i => isMatch(i.hosp_name, hospitalName));
-    console.log(`매칭된 병원 수: ${matched.length}`);
-    if (matched.length > 0) {
-      console.log('광고 잔액:', matched[0].balance);
-    }
-  } else {
-    console.log('데이터 없음 또는 API 에러');
+    const matched = placeRank.items.filter(i => isMatch(i.hosp_name, hospitalName));
+    console.log(matched);
   }
 }
 
