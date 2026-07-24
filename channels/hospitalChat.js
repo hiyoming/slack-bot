@@ -126,7 +126,12 @@ async function callGemini(hospital, userText) {
       if (reports.length > 0) {
         additionalContext += '\n[월간 보고서 작성 현황 데이터]\n';
         reports.forEach(r => {
-          additionalContext += `- ${r.report_year}년 ${r.report_month}월 보고서: ${r.confirmed ? '확인 완료' : '미확인'}, 페이지 수 ${r.page_count}장, 이미지 ${r.image_count}장\n`;
+          const title = `${r.title_prefix || ''} ${r.report_year}년 ${r.report_month}월 보고서 ${r.title_suffix || ''}`.trim();
+          if (!r.image_count || r.image_count === 0) {
+            additionalContext += `- [${title}] 미작성 (캡쳐 없음)\n`;
+          } else {
+            additionalContext += `- [${title}] ${r.confirmed ? '확인 완료' : '미확인'}, 캡쳐(이미지) ${r.image_count}장\n`;
+          }
         });
       }
     }
