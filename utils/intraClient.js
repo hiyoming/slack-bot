@@ -8,8 +8,8 @@ const BASE_URL = 'https://intra.dnew.co.kr';
  * 인트라 API 공통 호출 함수
  */
 async function intraFetch(endpoint) {
-  let token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyMiIsInJvbGUiOiJzdGFmZl9sZWFkIiwianRpIjoiR0xfRVJxNW16Snk1ZGNiRXVCZE84dyIsInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJkbmV3LXYyIiwiaWF0IjoxNzg0ODc3MDYxLCJleHAiOjE3ODQ4Nzc5NjF9.o7bPlh_-_cjy0cKAZ5Tru3MMSE3Sx6rSn4_lb3GMpM8';
-  const csrf = 'jn0-E-TAHy7LbBzVqHtTXCbv0pyVdQZ6oWU5GDGWpys';
+  let token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyMiIsInJvbGUiOiJzdGFmZl9sZWFkIiwianRpIjoiT2FZdFYzSm1JOGdJTXNKR0xJOGpodyIsInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJkbmV3LXYyIiwiaWF0IjoxNzg0ODc3OTc0LCJleHAiOjE3ODQ4Nzg4NzR9.C8TxB3GG54az10zybT2zOdsv0ScnRR1BpTVGtglQEY4';
+  const csrf = 'eQXSzXYXMYGPyB6FhDdg0htlH9nyENs2yUItlacOleI';
   const refresh = process.env.INTRA_REFRESH_TOKEN;
 
   if (!token) {
