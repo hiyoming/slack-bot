@@ -8,7 +8,11 @@ const BASE_URL = 'https://intra.dnew.co.kr';
  * 인트라 API 공통 호출 함수
  */
 async function intraFetch(endpoint) {
-  const token = process.env.INTRA_ACCESS_TOKEN;
+  let token = process.env.INTRA_ACCESS_TOKEN;
+  // [임시 하드코딩] 사용자가 테스트를 원하여 방금 제공받은 임시 토큰 강제 삽입 (15분 후 만료됨)
+  if (!token || token.length < 50 || token.includes('만료된토큰')) {
+    token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyMiIsInJvbGUiOiJzdGFmZl9sZWFkIiwianRpIjoiczNWdjBybW5ocWl6N1lWbXlkcHZ6ZyIsInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJkbmV3LXYyIiwiaWF0IjoxNzg0ODc1OTI2LCJleHAiOjE3ODQ4NzY4MjZ9.S8OAouZ_OqAXNNU8SdzGrH6pkD8PG0zeIiDBUwBasq4';
+  }
   const csrf = process.env.INTRA_CSRF_TOKEN;
   const refresh = process.env.INTRA_REFRESH_TOKEN;
 
