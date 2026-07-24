@@ -30,8 +30,7 @@ function isHospitalChannel(channelId) {
 // 인트라 API를 통해 이상 감지 보고서를 생성합니다.
 // ---------------------------------------------------------
 const MARKETING_STATUS_KEYWORDS = [
-  '마케팅 현황', '광고 현황', '현황 알려줘', '현황 보여줘',
-  '데일리 체크', '데일리체크', '데일리업무', '데일리 업무'
+  '마케팅 현황', '광고 현황', '데일리 체크', '데일리체크', '데일리업무', '데일리 업무'
 ];
 
 function isMarketingStatusRequest(text) {
